@@ -3,8 +3,11 @@ package main
 import (
 	"ecommerce_server/internal/cards"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type stripePayload struct {
@@ -28,7 +31,9 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+
 	amount, err := strconv.Atoi(payload.Amount)
+    log.Println("AMOUNT ->", amount)
 	if err != nil {
 		app.errorLog.Println(err)
 		return
@@ -76,4 +81,24 @@ func (app *application) GetPaymentIntent(w http.ResponseWriter, r *http.Request)
 
 	}
 
+}
+
+func (app *application) GetSessionByID(w http.ResponseWriter, r *http.Request) {
+    id := chi.URLParam(r, "id")
+    sessionID, _ := strconv.Atoi(id)
+
+    session, err := app.DB.GetSession(sessionID)
+    if err != nil {
+        app.errorLog.Println(err)
+        return 
+    }
+
+    out, err := json.MarshalIndent(session, "", " ")
+    if err != nil {
+        app.errorLog.Println(err)
+        return 
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.Write(out)
 }

@@ -1,5 +1,27 @@
 include .env
 
+init.up:
+	@echo "initiating tables..."
+	@env mysql -uroot -p'${PASSWORD}' widgets < ./migrations/init.up.sql
+
+show-tables:
+	@echo "connecting to my db widgets"
+	@env mysql -uroot -p'${PASSWORD}' widgets -Bse "show tables;"
+
+
+init.down:
+	@echo "Deleting initial creation..."
+	@env mysql -uroot -p'${PASSWORD}' widgets < ./migrations/init.down.sql
+
+seed.up:
+	@echo "inserting session row"
+	@env mysql -uroot -p'${PASSWORD}' widgets < ./migrations/seed.up.sql
+
+seed.down:
+	@echo "deleting migration \"seed\""
+	@env mysql -uroot -p'${PASSWORD}' widgets < ./migrations/seed.down.sql
+
+
 # build all binaries
 build: clean build.client build.server
 	@printf "All binaries build!"

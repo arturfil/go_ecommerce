@@ -19,6 +19,7 @@ func (app *application) routes() http.Handler {
 	}))
 
 	router.Post("/api/payment-intent", app.GetPaymentIntent)
+    router.Get("/api/session/{id}", app.GetSessionByID)
 
 	return router
 }

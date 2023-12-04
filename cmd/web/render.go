@@ -4,89 +4,102 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"strings"
 )
 
 type templateData struct {
-	StringMap       map[string]string
-	IntMap          map[string]int
-	FloatMap        map[string]float32
-	Data            map[string]interface{}
-	CSRFToken       string
-	Flash           string
-	Warning         string
-	Error           string
-	IsAuthenticated int
-	API             string
-	CSSVersion      string
+	StringMap            map[string]string
+	IntMap               map[string]int
+	FloatMap             map[string]float32
+	Data                 map[string]interface{}
+	CSRFToken            string
+	Flash                string
+	Warning              string
+	Error                string
+	IsAuthenticated      int
+	API                  string
+	CSSVersion           string
+	StripeSecretKey      string
+	StripePublishableKey string
 }
 
-var functions = template.FuncMap{}
+var functions = template.FuncMap{
+	"formatCurrency": formatCurrency,
+}
+
+func formatCurrency(n int) string {
+	f := float32(n / 100) 
+	log.Println("price", f)
+	return fmt.Sprintf("$%.2f", f)
+}
 
 //go:embed templates
 var templateFS embed.FS
 
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
-    td.API = app.config.api
-    return td
-} 
+	td.StripeSecretKey = app.config.stripe.secret
+	td.StripePublishableKey = app.config.stripe.key
+	td.API = app.config.api
+	return td
+}
 
 func (app *application) renderTemplate(w http.ResponseWriter, r *http.Request, page string, td *templateData, partials ...string) error {
-    var t *template.Template 
-    var err error
+	var t *template.Template
+	var err error
 
-    templateToRender := fmt.Sprintf("templates/%s.page.html", page)
+	templateToRender := fmt.Sprintf("templates/%s.page.html", page)
 
-    _, templateInMap := app.templateCache[templateToRender]
-    
-    if app.config.env == "production" && templateInMap {
-        t = app.templateCache[templateToRender]
-    } else {
-        t, err = app.parseTemplate(partials, page, templateToRender)
-        if err != nil {
-            app.errorLog.Println(err)
-            return err
-        }
-    }
+	_, templateInMap := app.templateCache[templateToRender]
 
-    if td == nil {
-        td = &templateData{}
-    }
+	if app.config.env == "production" && templateInMap {
+		t = app.templateCache[templateToRender]
+	} else {
+		t, err = app.parseTemplate(partials, page, templateToRender)
+		if err != nil {
+			app.errorLog.Println(err)
+			return err
+		}
+	}
 
-    td = app.addDefaultData(td, r)
+	if td == nil {
+		td = &templateData{}
+	}
 
-    err = t.Execute(w, td)
-    if err != nil {
-        app.errorLog.Println(err)
-        return err
-    }
+	td = app.addDefaultData(td, r)
 
-    return nil
+	err = t.Execute(w, td)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
+
+	return nil
 }
 
 func (app *application) parseTemplate(partials []string, page, templateToRender string) (*template.Template, error) {
-    var t *template.Template 
-    var err error
+	var t *template.Template
+	var err error
 
-    // buld templtes
-    if len(partials) > 0 {
-        for i, x := range partials {
-            partials[i] = fmt.Sprintf("templates/%s.partial.html", x)
-        }
-    }
+	// buld templtes
+	if len(partials) > 0 {
+		for i, x := range partials {
+			partials[i] = fmt.Sprintf("templates/%s.partial.html", x)
+		}
+	}
 
-    if len(partials) > 0 {
-        t, err = template.New(fmt.Sprintf("%s.page.html", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.html", strings.Join(partials, ","), templateToRender)
-    } else {
-        t, err = template.New(fmt.Sprintf("%s.page.html", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.html", templateToRender)
-    }
-    if err != nil {
-        app.errorLog.Println(err)
-        return nil, err
-    }
+	if len(partials) > 0 {
+		t, err = template.New(fmt.Sprintf("%s.page.html", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.html", strings.Join(partials, ","), templateToRender)
+	} else {
+		t, err = template.New(fmt.Sprintf("%s.page.html", page)).Funcs(functions).ParseFS(templateFS, "templates/base.layout.html", templateToRender)
+	}
+	if err != nil {
+		app.errorLog.Println(err)
+		return nil, err
+	}
 
-    app.templateCache[templateToRender] = t
+	app.templateCache[templateToRender] = t
 
-    return t, nil
+	return t, nil
 }
