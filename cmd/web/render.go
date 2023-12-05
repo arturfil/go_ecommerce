@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -31,8 +30,7 @@ var functions = template.FuncMap{
 
 func formatCurrency(n int) string {
 	f := float32(n / 100) 
-	log.Println("price", f)
-	return fmt.Sprintf("$%.2f", f)
+	return fmt.Sprintf("$%.1f", f)
 }
 
 //go:embed templates

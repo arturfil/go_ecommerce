@@ -66,6 +66,8 @@ type TransactionStatus struct {
 type Transaction struct {
 	ID                  int       `json:"id"`
 	Name                string    `json:"name"`
+	PaymentIntent       string    `json:"payment_intent"`
+	PaymentMethod       string    `json:"payment_method"`
 	Amount              int       `json:"amount"`
 	Currency            string    `json:"currency"`
 	LastFour            string    `json:"last_four"`
@@ -127,19 +129,33 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 	defer cancel()
 
 	query := `
-        INSERT INTO transactions
-            (amount, currency, last_four, bank_return_code, transaction_status_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO transactions (
+            amount,
+            currency,
+            last_four,
+            bank_return_code,
+            transaction_status_id,
+            expiry_month,
+            expiry_year,
+            payment_intent,
+            payment_method,
+            created_at,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
 
 	result, err := m.DB.ExecContext(
 		ctx,
 		query,
-        txn.Amount,
+		txn.Amount,
 		txn.Currency,
 		txn.LastFour,
 		txn.BankReturnCode,
 		txn.TransactionStatusID,
+		txn.ExpiryMonth,
+		txn.ExpiryYear,
+        txn.PaymentIntent,
+        txn.PaymentMethod,
 		time.Now(),
 		time.Now(),
 	)
@@ -162,9 +178,16 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 	defer cancel()
 
 	query := `
-        INSERT INTO orders 
-            (session_id, transaction_id, customer_id, status_id, quantity, amount, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO orders (
+             session_id,
+             transaction_id,
+             customer_id,
+             status_id,
+             quantity,
+             amount,
+             created_at,
+             updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `
 
 	result, err := m.DB.ExecContext(
@@ -172,7 +195,7 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 		query,
 		order.SessionID,
 		order.TransactionID,
-        order.CustomerID,
+		order.CustomerID,
 		order.StatusID,
 		order.Quantity,
 		order.Amount,

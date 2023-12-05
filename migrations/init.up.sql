@@ -39,8 +39,9 @@ CREATE TABLE `transaction_status` (
 -- Transaction Table
 CREATE TABLE `transactions` (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255),
     amount INT,
+    payment_intent VARCHAR(255),
+    payment_method VARCHAR(255),
     currency VARCHAR(255),
     last_four VARCHAR(255),
     bank_return_code VARCHAR(255),

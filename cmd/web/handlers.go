@@ -3,7 +3,6 @@ package main
 import (
 	"ecommerce_server/internal/cards"
 	"ecommerce_server/internal/models"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -70,12 +69,13 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		ExpiryMonth:         int(expiryMonth),
 		ExpiryYear:          int(expiryYear),
 		BankReturnCode:      pi.Charges.Data[0].ID,
+		PaymentIntent:       paymentIntent,
+		PaymentMethod:       paymentMethod,
 		TransactionStatusID: 2,
 	}
 
 	txnID, err := app.SaveTransaction(txn)
 	if err != nil {
-        log.Println("txn", txn)
 		app.errorLog.Println(err)
 		return
 	}
