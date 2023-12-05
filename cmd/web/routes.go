@@ -14,6 +14,7 @@ func (app *application) routes() http.Handler {
     router.Get("/", app.VirtualTerminal)
     router.Post("/payment-succeeded", app.PaymentSucceeded)
     router.Get("/session/{id}", app.ChargeOnce)
+    router.Get("/receipt", app.Receipt)
 
     fileServer := http.FileServer(http.Dir("./static")) 
 

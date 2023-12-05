@@ -3,6 +3,7 @@ package main
 import (
 	"ecommerce_server/internal/db"
 	"ecommerce_server/internal/models"
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"html/template"
@@ -58,6 +59,8 @@ func (app *application) serve() error {
 }
 
 func main() {
+
+	gob.Register(TransactionData{})
 	var cfg config
 
 	// dsn := os.Getenv("DSN")
