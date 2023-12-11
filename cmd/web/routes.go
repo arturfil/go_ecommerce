@@ -12,9 +12,14 @@ func (app *application) routes() http.Handler {
     router.Use(SessionLoad)
 
     router.Get("/", app.VirtualTerminal)
-    router.Post("/payment-succeeded", app.PaymentSucceeded)
+    router.Post("/virtual-terminal-payment-succeeded", app.VirtualPaymentSucceeded)
+    router.Get("/virtual-terminal-receipt", app.VirtualTerminalReceipt)
     router.Get("/session/{id}", app.ChargeOnce)
+
+    router.Post("/payment-succeeded", app.PaymentSucceeded)
     router.Get("/receipt", app.Receipt)
+
+    router.Get("/plans/bronze", app.BronzePlan)
 
     fileServer := http.FileServer(http.Dir("./static")) 
 

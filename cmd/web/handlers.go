@@ -89,6 +89,37 @@ func (app *application) GetTransactionData(r *http.Request) (TransactionData, er
 
 }
 
+func (app *application) VirtualPaymentSucceeded(w http.ResponseWriter, r *http.Request) {
+	txnData, err := app.GetTransactionData(r)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+	txn := models.Transaction{
+		Amount:              txnData.PaymentAmount,
+		Currency:            txnData.PaymentCurrency,
+		LastFour:            txnData.LastFour,
+		ExpiryMonth:         txnData.ExpiryMonth,
+		ExpiryYear:          txnData.ExpiryYear,
+		BankReturnCode:      txnData.BankReturnCode,
+		PaymentIntent:       txnData.PaymentIntentID,
+		PaymentMethod:       txnData.PaymentMethodID,
+		TransactionStatusID: 2,
+	}
+
+	_, err = app.SaveTransaction(txn)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+    // should write this data to session
+	app.Session.Put(r.Context(), "receipt", txnData)
+	http.Redirect(w, r, "/virtual-terminal-receipt", http.StatusSeeOther)
+
+}
+
 func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
@@ -141,13 +172,14 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 
 	_, err = app.SaveOrder(order)
 	if err != nil {
+        app.errorLog.Println(order)
 		app.errorLog.Println(err)
 		return
 	}
 
 	// should write this data to session
 	app.Session.Put(r.Context(), "receipt", txnData)
-	http.Redirect(w, r, "/receipt", http.StatusSeeOther)
+	http.Redirect(w, r, "/virtual-terminal-receipt", http.StatusSeeOther)
 
 }
 
@@ -159,6 +191,20 @@ func (app *application) Receipt(w http.ResponseWriter, r *http.Request) {
 	app.Session.Remove(r.Context(), "receipt")
 
 	if err := app.renderTemplate(w, r, "receipt", &templateData{
+		Data: data,
+	}); err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
+func (app *application) VirtualTerminalReceipt(w http.ResponseWriter, r *http.Request) {
+	txn := app.Session.Get(r.Context(), "receipt").(TransactionData)
+    data := map[string]interface{}{
+        "txn": txn,
+    }
+	app.Session.Remove(r.Context(), "receipt")
+
+	if err := app.renderTemplate(w, r, "virtual-terminal-receipt", &templateData{
 		Data: data,
 	}); err != nil {
 		app.errorLog.Println(err)
@@ -214,4 +260,22 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 	if err := app.renderTemplate(w, r, "buy-once", &templateData{Data: data}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
 	}
+}
+
+func (app *application) BronzePlan(w http.ResponseWriter, r *http.Request) {
+    session, err := app.DB.GetSession(2)
+    if err != nil {
+        app.errorLog.Println(err)
+        return 
+    }
+
+    data := map[string]interface{}{
+        "session": session,
+    }
+
+    if err := app.renderTemplate(w, r, "bronze-plan", &templateData{
+        Data: data,
+    }); err != nil {
+        app.errorLog.Print(err)
+    }
 }

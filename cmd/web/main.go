@@ -63,11 +63,11 @@ func main() {
 	gob.Register(TransactionData{})
 	var cfg config
 
-	// dsn := os.Getenv("DSN")
+	dsn := os.Getenv("DSN")
 
 	flag.IntVar(&cfg.port, "port", 3000, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|production}")
-	flag.StringVar(&cfg.db.dsn, "dsn", "root:Jamesbond123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "DSN")
+	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
 	flag.StringVar(&cfg.api, "api", "http://localhost:4200", "URL to api")
 
 	flag.Parse()

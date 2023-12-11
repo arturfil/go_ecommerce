@@ -50,10 +50,11 @@ func (app *application) serve() error {
 
 func main() {
 	var cfg config
+    dsn := os.Getenv("DSN")
 
 	flag.IntVar(&cfg.port, "port", 4200, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|maintance}")
-	flag.StringVar(&cfg.db.dsn, "dsn", "root:Jamesbond123@tcp(localhost:3306)/widgets?parseTime=true&tls=false", "DSN")
+	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
 
 	flag.Parse()
 

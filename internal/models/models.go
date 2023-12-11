@@ -31,6 +31,8 @@ type Session struct {
 	Price       int       `json:"price"`
 	SessionDate time.Time `json:"session_date"`
 	Image       string    `json:"image"`
+	IsRecurring bool      `json:"is_recurring"`
+    PlanID      string    `json:"plan_id"`
 	CreatedAt   time.Time `json:"-"`
 	UpdatedAt   time.Time `json:"-"`
 }
@@ -105,7 +107,7 @@ func (m *DBModel) GetSession(id int) (Session, error) {
 	var session Session
 
 	query := `
-        SELECT id, name, price, description, session_date FROM sessions where id = ?
+        SELECT id, name, price, description, is_recurring, plan_id, session_date FROM sessions where id = ?
     `
 
 	row := m.DB.QueryRowContext(ctx, query, id)
@@ -114,6 +116,8 @@ func (m *DBModel) GetSession(id int) (Session, error) {
 		&session.Name,
 		&session.Price,
 		&session.Description,
+		&session.IsRecurring,
+		&session.PlanID,
 		&session.SessionDate,
 	)
 	if err != nil {
@@ -154,8 +158,8 @@ func (m *DBModel) InsertTransaction(txn Transaction) (int, error) {
 		txn.TransactionStatusID,
 		txn.ExpiryMonth,
 		txn.ExpiryYear,
-        txn.PaymentIntent,
-        txn.PaymentMethod,
+		txn.PaymentIntent,
+		txn.PaymentMethod,
 		time.Now(),
 		time.Now(),
 	)
