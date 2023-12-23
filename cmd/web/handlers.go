@@ -10,9 +10,15 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+func (app *application) HomePage(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "home", nil); err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
 
-	if err := app.renderTemplate(w, r, "terminal", nil, "stripe-js"); err != nil {
+	if err := app.renderTemplate(w, r, "terminal", nil); err != nil {
 		app.errorLog.Println(err)
 	}
 }
@@ -114,7 +120,7 @@ func (app *application) VirtualPaymentSucceeded(w http.ResponseWriter, r *http.R
 		return
 	}
 
-    // should write this data to session
+	// should write this data to session
 	app.Session.Put(r.Context(), "receipt", txnData)
 	http.Redirect(w, r, "/virtual-terminal-receipt", http.StatusSeeOther)
 
@@ -127,7 +133,7 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sessionID, _ := strconv.Atoi(r.Form.Get("product_id"))
+	meetingID, _ := strconv.Atoi(r.Form.Get("product_id"))
 
 	txnData, err := app.GetTransactionData(r)
 	if err != nil {
@@ -160,7 +166,7 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 	}
 
 	order := models.Order{
-		SessionID:     sessionID,
+		MeetingID:     meetingID,
 		TransactionID: txnID,
 		CustomerID:    customerID,
 		StatusID:      1,
@@ -172,22 +178,22 @@ func (app *application) PaymentSucceeded(w http.ResponseWriter, r *http.Request)
 
 	_, err = app.SaveOrder(order)
 	if err != nil {
-        app.errorLog.Println(order)
+		app.errorLog.Println(order)
 		app.errorLog.Println(err)
 		return
 	}
 
 	// should write this data to session
 	app.Session.Put(r.Context(), "receipt", txnData)
-	http.Redirect(w, r, "/virtual-terminal-receipt", http.StatusSeeOther)
+	http.Redirect(w, r, "/receipt", http.StatusSeeOther)
 
 }
 
 func (app *application) Receipt(w http.ResponseWriter, r *http.Request) {
 	txn := app.Session.Get(r.Context(), "receipt").(TransactionData)
-    data := map[string]interface{}{
-        "txn": txn,
-    }
+	data := map[string]interface{}{
+		"txn": txn,
+	}
 	app.Session.Remove(r.Context(), "receipt")
 
 	if err := app.renderTemplate(w, r, "receipt", &templateData{
@@ -199,9 +205,9 @@ func (app *application) Receipt(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) VirtualTerminalReceipt(w http.ResponseWriter, r *http.Request) {
 	txn := app.Session.Get(r.Context(), "receipt").(TransactionData)
-    data := map[string]interface{}{
-        "txn": txn,
-    }
+	data := map[string]interface{}{
+		"txn": txn,
+	}
 	app.Session.Remove(r.Context(), "receipt")
 
 	if err := app.renderTemplate(w, r, "virtual-terminal-receipt", &templateData{
@@ -246,16 +252,16 @@ func (app *application) SaveOrder(order models.Order) (int, error) {
 func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
-	sessionID, _ := strconv.Atoi(id)
+	meetingID, _ := strconv.Atoi(id)
 
-	session, err := app.DB.GetSession(sessionID)
+	meeting, err := app.DB.GetMeeting(meetingID)
 	if err != nil {
 		app.errorLog.Println(err)
 		return
 	}
 
 	data := map[string]interface{}{}
-	data["session"] = session
+	data["meeting"] = meeting
 
 	if err := app.renderTemplate(w, r, "buy-once", &templateData{Data: data}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
@@ -263,19 +269,66 @@ func (app *application) ChargeOnce(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) BronzePlan(w http.ResponseWriter, r *http.Request) {
-    session, err := app.DB.GetSession(2)
-    if err != nil {
-        app.errorLog.Println(err)
-        return 
-    }
+	meeting, err := app.DB.GetMeeting(2)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
 
-    data := map[string]interface{}{
-        "session": session,
-    }
+	data := map[string]interface{}{
+		"meeting": meeting,
+	}
 
-    if err := app.renderTemplate(w, r, "bronze-plan", &templateData{
-        Data: data,
-    }); err != nil {
-        app.errorLog.Print(err)
-    }
+	if err := app.renderTemplate(w, r, "bronze-plan", &templateData{
+		Data: data,
+	}); err != nil {
+		app.errorLog.Print(err)
+	}
+}
+
+func (app *application) BronzePlanReceipt(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "receipt-plan", &templateData{}); err != nil {
+		app.errorLog.Print(err)
+	}
+}
+
+func (app *application) LoginPage(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "login", &templateData{}); err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
+func (app *application) PostLoginPage(w http.ResponseWriter, r *http.Request) {
+	app.Session.RenewToken(r.Context())
+
+	err := r.ParseForm()
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	id, err := app.DB.Authenticate(email, password)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	app.Session.Put(r.Context(), "userID", id)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
+	app.Session.Destroy(r.Context())
+	app.Session.RenewToken(r.Context())
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	if err := app.renderTemplate(w, r, "forgot-password", &templateData{}, "stripe-js"); err != nil {
+		app.errorLog.Println(err)
+	}
 }

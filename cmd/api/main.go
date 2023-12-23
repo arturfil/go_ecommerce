@@ -23,6 +23,12 @@ type config struct {
 		secret string
 		key    string
 	}
+    smtp struct {
+        host string
+        port int 
+        username string
+        password string
+    }
 }
 
 type application struct {
@@ -51,10 +57,17 @@ func (app *application) serve() error {
 func main() {
 	var cfg config
     dsn := os.Getenv("DSN")
+    user := os.Getenv("USERNAME")
+    password := os.Getenv("PASSWORD")
+
 
 	flag.IntVar(&cfg.port, "port", 4200, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|maintance}")
 	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
+	flag.StringVar(&cfg.smtp.host, "smtphost", "smtp.mailtrap.io", "smtp host")
+	flag.StringVar(&cfg.smtp.username, "smtpuser", user, "smtp user")
+	flag.StringVar(&cfg.smtp.password, "smtppassword", password, "smtp password")
+	flag.IntVar(&cfg.smtp.port, "smtpport", 587, "smtp port")
 
 	flag.Parse()
 

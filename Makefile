@@ -9,7 +9,7 @@ docker.start.container:
 	docker start ${DB_DOCKER_CONTAINER}
 
 show.tables:
-	@echo "connecting to my db widgets"
+	@echo "connecting to my db..."
 	docker exec -i ${DB_DOCKER_CONTAINER} mysql -u${DB_USER} -p${MYSQL_ROOT_PASSWORD} ${DB_NAME} -Bse "show tables;"
 
 init.up:
@@ -21,7 +21,7 @@ init.down:
 	docker exec -i ${DB_DOCKER_CONTAINER} mysql -u${DB_USER} -p${MYSQL_ROOT_PASSWORD} ${DB_NAME} < ./migrations/init.down.sql
 
 seed.up:
-	@echo "inserting session row"
+	@echo "inserting meetings rows"
 	docker exec -i ${DB_DOCKER_CONTAINER} mysql -u${DB_USER} -p${MYSQL_ROOT_PASSWORD} ${DB_NAME} < ./migrations/seed.up.sql
 
 seed.down:

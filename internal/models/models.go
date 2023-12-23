@@ -3,7 +3,11 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // DBMode is the type for database connection values
@@ -23,13 +27,13 @@ func NewModels(db *sql.DB) Models {
 	}
 }
 
-// Session Model
-type Session struct {
+// Meeting Model
+type Meeting struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Price       int       `json:"price"`
-	SessionDate time.Time `json:"session_date"`
+	MeetingDate time.Time `json:"meeting_date"`
 	Image       string    `json:"image"`
 	IsRecurring bool      `json:"is_recurring"`
     PlanID      string    `json:"plan_id"`
@@ -40,7 +44,7 @@ type Session struct {
 // Order Struct
 type Order struct {
 	ID            int       `json:"id"`
-	SessionID     int       `json:"session_id"`
+	MeetingID     int       `json:"meeting_id"`
 	TransactionID int       `json:"transaction_id"`
 	CustomerID    int       `json:"customer_id"`
 	StatusID      int       `json:"status_id"`
@@ -100,31 +104,32 @@ type Customer struct {
 	UpdatedAt time.Time `json:"-"`
 }
 
-func (m *DBModel) GetSession(id int) (Session, error) {
+// TODO: MISSING CHARGE ONCE FEATURE TO SOLVE, plan_id returns null! 
+func (m *DBModel) GetMeeting(id int) (Meeting, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var session Session
+	var meeting Meeting 
 
 	query := `
-        SELECT id, name, price, description, is_recurring, plan_id, session_date FROM sessions where id = ?
+        SELECT id, name, price, description, is_recurring, plan_id, meeting_date FROM meetings where id = ?
     `
 
 	row := m.DB.QueryRowContext(ctx, query, id)
 	err := row.Scan(
-		&session.ID,
-		&session.Name,
-		&session.Price,
-		&session.Description,
-		&session.IsRecurring,
-		&session.PlanID,
-		&session.SessionDate,
+		&meeting.ID,
+		&meeting.Name,
+		&meeting.Price,
+		&meeting.Description,
+		&meeting.IsRecurring,
+		&meeting.PlanID,
+		&meeting.MeetingDate,
 	)
 	if err != nil {
-		return session, err
+		return meeting, err
 	}
 
-	return session, nil
+	return meeting, nil
 }
 
 // InsertTransaction inserts a new txn, and returns its id
@@ -183,7 +188,7 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 
 	query := `
         INSERT INTO orders (
-             session_id,
+             meeting_id,
              transaction_id,
              customer_id,
              status_id,
@@ -197,7 +202,7 @@ func (m *DBModel) InsertOrder(order Order) (int, error) {
 	result, err := m.DB.ExecContext(
 		ctx,
 		query,
-		order.SessionID,
+		order.MeetingID,
 		order.TransactionID,
 		order.CustomerID,
 		order.StatusID,
@@ -250,4 +255,67 @@ func (m *DBModel) InsertCustomer(customer Customer) (int, error) {
 
 	return int(id), nil
 
+}
+
+func (m *DBModel) GetUserByEmail(email string) (User, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+    email = strings.ToLower(email)
+    var u User
+
+    query := `
+        SELECT id, first_name, last_name, email, password, created_at, updated_at
+        FROM users
+        WHERE email = ?
+    `
+
+    row := m.DB.QueryRowContext(
+        ctx,
+        query,
+        email,
+    )
+
+    err := row.Scan(
+        &u.ID,
+        &u.FirstName,
+        &u.LastName,
+        &u.Email,
+        &u.Password,
+        &u.CreatedAt,
+        &u.UpdatedAt,
+    )
+    if err != nil {
+        return u, err
+    }
+
+    return u, nil
+}
+
+func (m *DBModel) Authenticate(email, password string) (int, error) {
+     ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+    var id int
+    var hashedPassword string
+
+    row := m.DB.QueryRowContext(
+        ctx, 
+        "SELECT id, password FROM users WHERE email = ?",
+        email,
+    )
+
+    err := row.Scan(&id, &hashedPassword)
+    if err != nil {
+        return id, err
+    }
+
+    err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+    if err == bcrypt.ErrMismatchedHashAndPassword {
+        return 0, errors.New("incorrect password")
+    } else if err != nil {
+        return 0, err
+    } 
+
+    return id, nil
 }

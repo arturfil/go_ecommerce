@@ -5,7 +5,7 @@
 {{end}}
 
 {{define "content"}}
-{{$session := index .Data "session"}}
+{{$meeting := index .Data "meeting"}}
     <h2 class="mt-3 text-center">Tutoring Weekly Package</h2>
     <hr/>
 
@@ -22,7 +22,7 @@
         ">
         <img src="/static/sessions_blue.png" 
             style="justify-content: center;"
-            height="100" width="100" alt="session" 
+            height="100" width="100" alt="meeting" 
             class="image-fluid rounder mx-auto d-block"
         >
     </div>
@@ -32,10 +32,10 @@
         class="d-block needs-validation charge-form"
         autocomplete="off" novalidate="">
 
-        <input type="hidden" name="product_id" id="product_id" value={{$session.ID}}>
-        <input type="hidden" id="amount" name="product_price" value={{$session.Price}}>
+        <input type="hidden" name="product_id" id="product_id" value={{$meeting.ID}}>
+        <input type="hidden" id="amount" name="product_price" value={{$meeting.Price}}>
 
-        <h3>Price: {{formatCurrency $session.Price}}</h3>
+        <h3>Price: {{formatCurrency $meeting.Price}}</h3>
 
         <div class="mb-3">
            <label for="first-name" class="form-label">First Name</label> 
@@ -91,7 +91,7 @@
 
 
 {{define "js"}}
-{{$session := index .Data "session"}}
+{{$meeting := index .Data "meeting"}}
 
     <script src="https://js.stripe.com/v3/"></script>
     <script>
@@ -157,7 +157,7 @@
                 // create customer & subscribe
                 let payload = {
                     product_id: document.getElementById("product_id").value,
-                    plan: "{{$session.PlanID}}",
+                    plan: "{{$meeting.PlanID}}",
                     payment_method: result.paymentMethod.id,
                     email: document.getElementById("cardholder-email").value,
                     last_four: result.paymentMethod.card.last4,
@@ -180,8 +180,14 @@
                 fetch("{{.API}}/api/create-customer-and-subscribe-to-plan", requestOptions)
                     .then(response => response.json())
                     .then((data) => {
-                        console.log(data);
-                        processing.classList.add("d-none")
+                        console.log("meeting storage amount {{formatCurrency $meeting.Price}}");
+                        processing.classList.add("d-none");
+                        showCardSuccess();
+                        sessionStorage.first_name = document.getElementById("first-name").value;
+                        sessionStorage.last_name = document.getElementById("last-name").value;
+                        sessionStorage.amount = String("{{formatCurrency $meeting.Price}}");
+                        sessionStorage.last_four = String(result.paymentMethod.card.last4);                        
+                        location.href = "/receipt/bronze"
                     });
             }
         }

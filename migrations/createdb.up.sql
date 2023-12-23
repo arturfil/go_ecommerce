@@ -1,1 +1,1 @@
-CREATE DATABASE sessions;
+CREATE DATABASE go_ecommercedb;

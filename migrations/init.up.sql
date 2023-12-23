@@ -1,14 +1,24 @@
--- sessions table
-CREATE TABLE `sessions` (                                                      
+-- meetings table
+CREATE TABLE `meetings` (                                                      
     id INT AUTO_INCREMENT PRIMARY KEY,                                        
     name VARCHAR(255) NOT NULL,                                               
     description VARCHAR(255),                                                 
     price INT,                                                                
-    session_date TIMESTAMP,                                                    
+    is_recurring BOOLEAN NOT NULL,
+    plan_id varchar(255) DEFAULT "",
+    meeting_date TIMESTAMP,                                                    
     image VARCHAR(255),                                                       
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,                            
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
 );           
+
+CREATE TABLE `sessions` (
+    token CHAR(43) PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry TIMESTAMP(6) NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 
 -- Status Table
 CREATE TABLE `status` (
@@ -56,7 +66,7 @@ CREATE TABLE `transactions` (
 -- order table
 CREATE TABLE `orders` (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    session_id INT,
+    meeting_id INT,
     transaction_id INT,
     customer_id INT,
     status_id INT,
@@ -64,7 +74,7 @@ CREATE TABLE `orders` (
     amount INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -80,4 +90,14 @@ CREATE TABLE `users` (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-
+CREATE TABLE `tokens` (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    token_hash VARBINARY(255),
+    expiry TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+)

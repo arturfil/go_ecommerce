@@ -19,8 +19,18 @@ func (app *application) routes() http.Handler {
 	}))
 
 	router.Post("/api/payment-intent", app.GetPaymentIntent)
-    router.Get("/api/session/{id}", app.GetSessionByID)
+    router.Get("/api/meeting/{id}", app.GetMeetingByID)
     router.Post("/api/create-customer-and-subscribe-to-plan", app.CreateCustomerAndSubscribeToPlan)
+
+    router.Post("/api/authenticate", app.CreateAuthToken)
+    router.Post("/api/is-authenticated", app.CheckAuthentication)
+    router.Post("/api/forgot-password", app.SendPasswordResetEmail)
+
+    router.Route("/api/admin", func(router chi.Router) {
+        router.Use(app.Auth)
+        
+        router.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
+    })
 
 	return router
 }
