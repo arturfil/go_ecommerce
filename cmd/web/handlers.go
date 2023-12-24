@@ -3,6 +3,8 @@ package main
 import (
 	"ecommerce_server/internal/cards"
 	"ecommerce_server/internal/models"
+	"ecommerce_server/internal/urlsigner"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -331,4 +333,22 @@ func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if err := app.renderTemplate(w, r, "forgot-password", &templateData{}, "stripe-js"); err != nil {
 		app.errorLog.Println(err)
 	}
+}
+
+func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request) {
+    ourUrl := r.RequestURI
+    testUrl := fmt.Sprintf("%s%s", app.config.frontend, ourUrl)
+
+    signer := urlsigner.Signer {
+        Secret: []byte(app.config.secretkey),
+    }
+
+    valid := signer.VerifyToken(testUrl)
+    
+    if valid {
+        w.Write([]byte("valid"))
+    } else {
+        w.Write([]byte("invalid"))
+    }
+
 }

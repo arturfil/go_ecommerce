@@ -33,6 +33,8 @@ func (app *application) routes() http.Handler {
     router.Post("/login", app.PostLoginPage)
     router.Get("/logout", app.Logout)
     router.Get("/forgot-password", app.ForgotPassword)
+    router.Get("/reset-password", app.ShowResetPassword)
+
 
     fileServer := http.FileServer(http.Dir("./static")) 
 

@@ -58,7 +58,7 @@ start.client:
 
 start.server:
 	@echo "Starting the server end..."
-	@env STRIPE_KEY=${STRIPE_KEY} STRIPE_SECRET=${STRIPE_SECRET} DSN=${DSN} ./dist/gostripe_api -port=${API_PORT} &
+	@env USERNAME=${USERNAME} PASSWORD=${PASSWORD} STRIPE_KEY=${STRIPE_KEY} STRIPE_SECRET=${STRIPE_SECRET} DSN=${DSN} ./dist/gostripe_api -port=${API_PORT} &
 	@echo "Back end running!"
 
 restart.server: stop.server build.server start.server

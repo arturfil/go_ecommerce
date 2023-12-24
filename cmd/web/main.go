@@ -32,6 +32,8 @@ type config struct {
 		secret string
 		key    string
 	}
+	secretkey string
+	frontend  string
 }
 
 type application struct {
@@ -70,6 +72,8 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|production}")
 	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
 	flag.StringVar(&cfg.api, "api", "http://localhost:4200", "URL to api")
+	flag.StringVar(&cfg.secretkey, "secret", "lsdfjlk2348901234asdfj", "secret key")
+	flag.StringVar(&cfg.frontend, "frontend", "http://localhost:3000", "url to frontend")
 
 	flag.Parse()
 
@@ -89,7 +93,7 @@ func main() {
 	// set up session
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
-    session.Store = mysqlstore.New(conn)
+	session.Store = mysqlstore.New(conn)
 
 	tc := make(map[string]*template.Template)
 

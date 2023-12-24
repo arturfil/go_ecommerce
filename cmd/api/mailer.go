@@ -5,19 +5,16 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"log"
 	"time"
 
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
-// go:embed templates
+//go:embed templates
 var emailTemplateFS embed.FS
 
 func (app *application) SendMail(from, to, subject, tmpl string, data interface{}) error {
 	templateToRender := fmt.Sprintf("templates/%s.html.tmpl", tmpl)
-
-    log.Println("TMPL", templateToRender)
 
 	t, err := template.New("email-html").ParseFS(emailTemplateFS, templateToRender)
 	if err != nil {

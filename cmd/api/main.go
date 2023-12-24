@@ -29,6 +29,8 @@ type config struct {
         username string
         password string
     }
+    secretkey string 
+    frontend string
 }
 
 type application struct {
@@ -60,13 +62,14 @@ func main() {
     user := os.Getenv("USERNAME")
     password := os.Getenv("PASSWORD")
 
-
 	flag.IntVar(&cfg.port, "port", 4200, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|maintance}")
 	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
 	flag.StringVar(&cfg.smtp.host, "smtphost", "smtp.mailtrap.io", "smtp host")
 	flag.StringVar(&cfg.smtp.username, "smtpuser", user, "smtp user")
 	flag.StringVar(&cfg.smtp.password, "smtppassword", password, "smtp password")
+	flag.StringVar(&cfg.secretkey, "secret", "lsdfjlk2348901234asdfj", "secret key")
+    flag.StringVar(&cfg.frontend, "frontend", "http://localhost:3000", "url to frontend")
 	flag.IntVar(&cfg.smtp.port, "smtpport", 587, "smtp port")
 
 	flag.Parse()
