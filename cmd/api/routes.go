@@ -25,6 +25,7 @@ func (app *application) routes() http.Handler {
     router.Post("/api/authenticate", app.CreateAuthToken)
     router.Post("/api/is-authenticated", app.CheckAuthentication)
     router.Post("/api/forgot-password", app.SendPasswordResetEmail)
+    router.Post("/api/reset-password", app.ResetPassword)
 
     router.Route("/api/admin", func(router chi.Router) {
         router.Use(app.Auth)

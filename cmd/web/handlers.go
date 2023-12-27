@@ -345,10 +345,21 @@ func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request
 
     valid := signer.VerifyToken(testUrl)
     
-    if valid {
-        w.Write([]byte("valid"))
-    } else {
-        w.Write([]byte("invalid"))
-    }
+    if !valid {
+        app.errorLog.Println("Invalid url - tampering detected")
+     } 
 
+     // make sure it's not expired
+     expired := signer.Expired(testUrl, 60)
+     if expired {
+        app.errorLog.Println("Link expired")
+     }
+
+     data := map[string]interface{}{
+         "email": r.URL.Query().Get("email"),
+     }
+
+     if err := app.renderTemplate(w, r, "reset-password", &templateData{Data: data}); err != nil {
+         app.errorLog.Println(err)
+     }
 }
