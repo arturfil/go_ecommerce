@@ -14,10 +14,9 @@ func (app *application) routes() http.Handler {
     router.Route("/admin", func(router chi.Router) {
         router.Use(app.Auth)
         router.Get("/", app.VirtualTerminal)
+        router.Get("/all-sales", app.AllSales)
+        router.Get("/all-subscriptions", app.AllSubscriptions)
     })
-
-    // router.Post("/virtual-terminal-payment-succeeded", app.VirtualPaymentSucceeded)
-    // router.Get("/virtual-terminal-receipt", app.VirtualTerminalReceipt)
 
     router.Get("/", app.HomePage)
 

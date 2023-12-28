@@ -43,17 +43,42 @@
              </ul>
             </li>
 
-            <li class="nav-item d-none" id="terminal-link">
-              <a class="nav-link "  href="/admin">Terminal</a>
-            </li>
+            {{if eq .IsAuthenticated 1}}
+
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                   Admin 
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="/admin">Terminal</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/admin/all-sales">All Sales</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/admin/all-subscriptions">All Subscriptions</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                 </ul>
+                </li>
+
+            {{end}}
 
           </ul>
         
+          {{ if eq .IsAuthenticated 1}}
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item " id="login-link">
+                <a class="nav-link "  href="/logout">Logout</a>
+            </li> 
+          </ul>
+        {{ else}}
+
+           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             <li class="nav-item " id="login-link">
                 <a class="nav-link "  href="/login">Login</a>
             </li> 
           </ul>
+ 
+        {{end}}
 
         </div>
       </div>
@@ -73,19 +98,7 @@
         crossorigin="anonymous"></script>
 
     <script>
-        let loginLink = document.getElementById("login-link")
-        let terminalLink = document.getElementById("terminal-link")
-
-        document.addEventListener("DOMContentLoaded", function() {
-            if (localStorage.getItem("token") !== null) {
-                loginLink.innerHTML = `<a class="nav-link" id="login-link" onclick="logout()" href="#">Log Out</a>`
-                terminalLink.classList.remove("d-none")
-            } else {
-                loginLink.innerHTML = '<a class="nav-link" id="login-link" href="/login">Login</a>'
-            }
-
-        })
-
+        
         function logout() {
             localStorage.removeItem("token")
             localStorage.removeItem("token_expiry")

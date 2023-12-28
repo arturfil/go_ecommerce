@@ -2,6 +2,7 @@ package main
 
 import (
 	"ecommerce_server/internal/cards"
+	"ecommerce_server/internal/encryption"
 	"ecommerce_server/internal/models"
 	"ecommerce_server/internal/urlsigner"
 	"fmt"
@@ -336,6 +337,7 @@ func (app *application) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request) {
+    email := r.URL.Query().Get("email")
     ourUrl := r.RequestURI
     testUrl := fmt.Sprintf("%s%s", app.config.frontend, ourUrl)
 
@@ -355,11 +357,34 @@ func (app *application) ShowResetPassword(w http.ResponseWriter, r *http.Request
         app.errorLog.Println("Link expired")
      }
 
+     encrypter := encryption.Encryption {
+         Key: []byte(app.config.secretkey),
+     }
+
+    encryptedEmail, err := encrypter.Encrypt(email)
+    if err != nil {
+        app.errorLog.Println("Encryption failed")
+        return 
+    }
+
      data := map[string]interface{}{
-         "email": r.URL.Query().Get("email"),
+         "email": encryptedEmail,
      }
 
      if err := app.renderTemplate(w, r, "reset-password", &templateData{Data: data}); err != nil {
+         app.errorLog.Println(err)
+     }
+}
+
+func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
+     if err := app.renderTemplate(w, r, "all-sales", &templateData{}); err != nil {
+         app.errorLog.Println(err)
+     }
+}
+
+
+func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
+     if err := app.renderTemplate(w, r, "all-subscriptions", &templateData{}); err != nil {
          app.errorLog.Println(err)
      }
 }

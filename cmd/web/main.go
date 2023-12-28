@@ -67,12 +67,13 @@ func main() {
 	var cfg config
 
 	dsn := os.Getenv("DSN")
+    secretKey := os.Getenv("SECRET_KEY")
 
 	flag.IntVar(&cfg.port, "port", 3000, "Server port to listen on")
 	flag.StringVar(&cfg.env, "env", "development", "Application environment {dev|production}")
 	flag.StringVar(&cfg.db.dsn, "dsn", dsn, "DSN")
 	flag.StringVar(&cfg.api, "api", "http://localhost:4200", "URL to api")
-	flag.StringVar(&cfg.secretkey, "secret", "lsdfjlk2348901234asdfj", "secret key")
+	flag.StringVar(&cfg.secretkey, "secret", secretKey, "secret key")
 	flag.StringVar(&cfg.frontend, "frontend", "http://localhost:3000", "url to frontend")
 
 	flag.Parse()

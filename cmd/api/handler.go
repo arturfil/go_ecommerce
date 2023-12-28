@@ -2,6 +2,7 @@ package main
 
 import (
 	"ecommerce_server/internal/cards"
+	"ecommerce_server/internal/encryption"
 	"ecommerce_server/internal/models"
 	"ecommerce_server/internal/urlsigner"
 	"encoding/json"
@@ -491,7 +492,17 @@ func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
         return 
     }
 
-    user, err := app.DB.GetUserByEmail(payload.Email)
+    encrypter := encryption.Encryption {
+        Key: []byte(app.config.secretkey),
+    }
+
+    decryptedEmail, err := encrypter.Decrypt(payload.Email)
+    if err != nil {
+        app.badRequest(w, r, err)
+        return 
+    }
+
+    user, err := app.DB.GetUserByEmail(decryptedEmail)
     if err != nil {
         app.badRequest(w, r, err)
         return 
