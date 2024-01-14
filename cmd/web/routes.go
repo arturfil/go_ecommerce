@@ -16,6 +16,8 @@ func (app *application) routes() http.Handler {
         router.Get("/", app.VirtualTerminal)
         router.Get("/all-sales", app.AllSales)
         router.Get("/all-subscriptions", app.AllSubscriptions)
+        router.Get("/sales/{id}", app.ShowSale)
+        router.Get("/subscription/{id}", app.ShowSubscription)
     })
 
     router.Get("/", app.HomePage)

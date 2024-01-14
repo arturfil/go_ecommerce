@@ -128,7 +128,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		return
 	}
 
-	app.infoLog.Println(data.Email, data.LastFour, data.PaymentMethod, data.Plan)
+	app.infoLog.Println(data.Email, data.LastFour, data.PaymentMethod, data.Plan, data.Amount)
 
 	card := cards.Card{
 		Secret:   app.config.stripe.secret,
@@ -173,6 +173,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 		}
 
 		amount, err := strconv.Atoi(data.Amount)
+		app.infoLog.Println("Amount->", amount)
 		if err != nil {
 			app.errorLog.Println(err)
 			return
@@ -185,6 +186,8 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 			ExpiryMonth:         data.ExpiryMonth,
 			ExpiryYear:          data.ExpiryYear,
 			TransactionStatusID: 2,
+			PaymentIntent:       subscription.ID,
+			PaymentMethod:       data.PaymentMethod,
 		}
 
 		txnID, err := app.SaveTransaction(txn)
@@ -199,6 +202,7 @@ func (app *application) CreateCustomerAndSubscribeToPlan(w http.ResponseWriter, 
 			CustomerID:    customerID,
 			StatusID:      1,
 			Quantity:      1,
+			Amount:        amount,
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		}
@@ -434,26 +438,26 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-    // verify that email exists
-    _, err = app.DB.GetUserByEmail(payload.Email)
-    if err != nil {
-        var resp struct {
-            Error bool `json:"error"`
-            Message string `json:"message"`
-        }
-        resp.Error = true
-        resp.Message = "No matching email found on our system"
-        app.writeJSON(w, http.StatusAccepted, resp)
-        return
-    }
+	// verify that email exists
+	_, err = app.DB.GetUserByEmail(payload.Email)
+	if err != nil {
+		var resp struct {
+			Error   bool   `json:"error"`
+			Message string `json:"message"`
+		}
+		resp.Error = true
+		resp.Message = "No matching email found on our system"
+		app.writeJSON(w, http.StatusAccepted, resp)
+		return
+	}
 
-    link := fmt.Sprintf("%s/reset-password?email=%s", app.config.frontend, payload.Email)
+	link := fmt.Sprintf("%s/reset-password?email=%s", app.config.frontend, payload.Email)
 
-    sign := urlsigner.Signer {
-        Secret: []byte(app.config.secretkey),
-    }
+	sign := urlsigner.Signer{
+		Secret: []byte(app.config.secretkey),
+	}
 
-    signedLink := sign.GenerateTokenFromString(link)
+	signedLink := sign.GenerateTokenFromString(link)
 
 	var data struct {
 		Link string
@@ -481,52 +485,225 @@ func (app *application) SendPasswordResetEmail(w http.ResponseWriter, r *http.Re
 }
 
 func (app *application) ResetPassword(w http.ResponseWriter, r *http.Request) {
-    var payload struct {
-        Email string `json:"email"`
-        Password string `json:"password"`
-    }
+	var payload struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 
-    err := app.readJSON(w, r, &payload)
-    if err != nil {
-        app.badRequest(w, r, err)
-        return 
-    }
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-    encrypter := encryption.Encryption {
-        Key: []byte(app.config.secretkey),
-    }
+	encrypter := encryption.Encryption{
+		Key: []byte(app.config.secretkey),
+	}
 
-    decryptedEmail, err := encrypter.Decrypt(payload.Email)
-    if err != nil {
-        app.badRequest(w, r, err)
-        return 
-    }
+	decryptedEmail, err := encrypter.Decrypt(payload.Email)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-    user, err := app.DB.GetUserByEmail(decryptedEmail)
-    if err != nil {
-        app.badRequest(w, r, err)
-        return 
-    }
+	user, err := app.DB.GetUserByEmail(decryptedEmail)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-    newHash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
-    if err != nil {
-        app.badRequest(w, r, err)
-        return 
-    }
+	newHash, err := bcrypt.GenerateFromPassword([]byte(payload.Password), 12)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-    err = app.DB.UpdatePasswordForUser(user, string(newHash))
-    if err != nil {
-        app.badRequest(w, r, err)
-        return 
-    }
+	err = app.DB.UpdatePasswordForUser(user, string(newHash))
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
 
-    var resp struct {
-         Error bool `json:"error"`
-         Message string `json:"message"`
-     }
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
 
-     resp.Error = false
-     resp.Message = "password change"
+	resp.Error = false
+	resp.Message = "password change"
 
-     app.writeJSON(w, http.StatusCreated, resp)
+	app.writeJSON(w, http.StatusCreated, resp)
+}
+
+func (app *application) AllSales(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	allSales, lastPage, totalRecords, err := app.DB.GetAllOrdersPaginated(payload.PageSize, payload.CurrentPage)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		LastPage     int             `json:"last_page"`
+		PageSize     int             `json:"page_size"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+
+	resp.CurrentPage = payload.CurrentPage
+	resp.PageSize = payload.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSales
+
+	app.writeJSON(w, http.StatusOK, resp)
+}
+
+func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		PageSize    int `json:"page_size"`
+		CurrentPage int `json:"page"`
+	}
+
+	err := app.readJSON(w, r, &payload)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	allSales, lastPage, totalRecords, err := app.DB.GetAllSubscriptionsPaginated(payload.PageSize, payload.CurrentPage)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	var resp struct {
+		CurrentPage  int             `json:"current_page"`
+		LastPage     int             `json:"last_page"`
+		PageSize     int             `json:"page_size"`
+		TotalRecords int             `json:"total_records"`
+		Orders       []*models.Order `json:"orders"`
+	}
+
+	resp.CurrentPage = payload.CurrentPage
+	resp.PageSize = payload.PageSize
+	resp.LastPage = lastPage
+	resp.TotalRecords = totalRecords
+	resp.Orders = allSales
+
+	app.writeJSON(w, http.StatusOK, resp)
+}
+
+func (app *application) GetSale(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	orderID, err := strconv.Atoi(id)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	order, err := app.DB.GetOrderById(orderID)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, order)
+}
+
+func (app *application) RefundCharge(w http.ResponseWriter, r *http.Request) {
+	var chargeToRefund struct {
+		ID            int    `json:"id"`
+		PaymentIntent string `json:"pi"`
+		Amount        int    `json:"amount"`
+		Currency      string `json:"curency"`
+	}
+
+	err := app.readJSON(w, r, &chargeToRefund)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: chargeToRefund.Currency,
+	}
+
+	err = card.Refund(chargeToRefund.PaymentIntent, chargeToRefund.Amount)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	err = app.DB.UpdateOrderStatus(chargeToRefund.ID, 2)
+	if err != nil {
+		app.badRequest(w, r, errors.New("the charge was refunded, but the db could not updated"))
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+	resp.Message = "Charge Refunded"
+
+	app.writeJSON(w, http.StatusOK, resp)
+
+}
+
+func (app *application) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	var subToCancel struct {
+		ID            int    `json:"id"`
+		PaymentIntent string `json:"pi"`
+		Currency      string `json:"currency"`
+	}
+
+	err := app.readJSON(w, r, &subToCancel)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	card := cards.Card{
+		Secret:   app.config.stripe.secret,
+		Key:      app.config.stripe.key,
+		Currency: subToCancel.Currency,
+	}
+
+	err = card.CancelSubscription(subToCancel.PaymentIntent)
+	if err != nil {
+		app.badRequest(w, r, err)
+		return
+	}
+
+	err = app.DB.UpdateOrderStatus(subToCancel.ID, 3)
+	if err != nil {
+		app.badRequest(w, r, errors.New("the subscription was refunded, but the db could not updated"))
+		return
+	}
+
+	var resp struct {
+		Error   bool   `json:"error"`
+		Message string `json:"message"`
+	}
+
+	resp.Error = false
+	resp.Message = "Subscription Canceled!"
+
+	app.writeJSON(w, http.StatusOK, resp)
 }

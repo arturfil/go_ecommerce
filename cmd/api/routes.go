@@ -31,6 +31,11 @@ func (app *application) routes() http.Handler {
         router.Use(app.Auth)
         
         router.Post("/virtual-terminal-succeeded", app.VirtualTerminalPaymentSucceeded)
+        router.Post("/all-sales", app.AllSales)
+        router.Post("/all-subscriptions", app.AllSubscriptions)
+        router.Post("/get-sale/{id}", app.GetSale)
+        router.Post("/refund", app.RefundCharge)
+        router.Post("/cancel-subscription", app.CancelSubscription)
     })
 
 	return router

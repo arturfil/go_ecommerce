@@ -388,3 +388,37 @@ func (app *application) AllSubscriptions(w http.ResponseWriter, r *http.Request)
          app.errorLog.Println(err)
      }
 }
+
+func (app *application) ShowSale(w http.ResponseWriter, r *http.Request) {
+    stringMap := map[string]string{
+        "title": "Sale", 
+        "cancel":"/admin/all-sales",
+        "refund-url": "/api/admin/refund",
+        "refund-btn": "Refund Order",
+        "refunded-badge": "Refunded",
+        "success-message": "Charge Refunded",
+
+    }    
+
+    if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}); err != nil {
+        app.errorLog.Println(err)
+    }
+}
+
+func (app *application) ShowSubscription(w http.ResponseWriter, r *http.Request) {
+    stringMap := map[string]string{
+        "title": "Subscription", 
+        "cancel":"/admin/all-subscriptions",
+        "refund-url": "/api/admin/cancel-subscription",
+        "refund-btn": "Cancel Subscription",
+        "refunded-badge": "Cancelled",
+        "success-message": "Subscrition Cancelled",
+
+    }    
+
+    if err := app.renderTemplate(w, r, "sale", &templateData{StringMap: stringMap}); err != nil {
+        app.errorLog.Println(err)
+    }
+}
+
+

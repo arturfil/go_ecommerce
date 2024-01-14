@@ -7,8 +7,158 @@
 {{define "content"}}
     <h2 class="mt-5">All Sales</h2>
     <hr>
+
+    <table id="sales-table" class="table table-striped">
+        <thead>
+            <tr>
+                <th>Transaction</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Amount</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
+
+    <nav>
+        <ul id="paginator" class="pagination">
+
+        </ul>
+    </nav>
+
 {{end}}
 
 {{define "js"}}
+    <script>
+        let currentPage = 1;
+        let pageSize = 5;
 
+        function paginator(pages, currentPage) {
+            let p = document.getElementById("paginator");
+
+            let html = `
+                <li class="page-item">
+                    <a href="#!" class="page-link pager" data-page="${currentPage - 1}">
+                        &lt;
+                    </a>
+                </li>
+            `
+
+            for (let i = 0; i <= pages; i++) {
+                html += `
+                    <li class="page-item">
+                        <a href="#!" class="page-link pager" data-page="${i + 1}">
+                            ${i + 1}
+                        </a>
+                    </li>
+                `
+            }
+
+            html += `
+                    <li class="page-item">
+                        <a href="#!" class="page-link pager" data-page="${currentPage + 1}">
+                            &gt;
+                        </a>
+                    </li>
+            `
+
+            p.innerHTML = html;
+
+            let pageBtns = document.getElementsByClassName("pager")
+
+            for (let i = 0; i < pageBtns.length; i++) {
+                pageBtns[i].addEventListener("click", (e) => {
+
+                    let desiredPage = e.target.getAttribute("data-page");
+                    console.log("clicked", desiredPage);
+
+                    if (desiredPage > 0 && desiredPage <= pages + 1) {
+                        console.log("would go to page", desiredPage);
+                        updateTable(pageSize, desiredPage);
+                    }
+                })
+            }
+        }
+
+        function updateTable(pageSize, currentPage) {
+
+            let token = localStorage.getItem("token")
+            let tbody = document.getElementById("sales-table").getElementsByTagName("tbody")[0];
+            tbody.innerHTML = "";
+
+            let body = {
+                page_size: parseInt(pageSize, 10),
+                page: parseInt(currentPage, 10),
+            }
+
+            const options = {
+                method: "POST",
+                headers: {
+                    "Accept":"application/json",
+                    "Authorization": "Bearer " + token,
+                },
+                body: JSON.stringify(body)
+            }
+
+            fetch("{{.API}}/api/admin/all-sales", options)
+                .then(response => response.json())
+                .then(data => {
+
+                    console.log("DATA", data)
+
+                    if (!data.orders) {
+                        let newRow = tbody.insertRow(); 
+                        let newCell = newRow.insertCell();
+                        newCell.setAttribute("colspan", "5");
+                        newCell.innerHTML = "No data available";
+                        return
+                    }
+                    
+
+                    data.orders.forEach(i => {
+                        let newRow = tbody.insertRow();
+                        let newCell = newRow.insertCell();
+
+                        newCell.innerHTML = `<a href="/admin/sales/${i.id}">Order ${i.id}</a>`
+                        newCell = newRow.insertCell()
+                        let item = document.createTextNode(`${i.customer.last_name} ${i.customer.first_name}`)
+                        newCell.appendChild(item);
+
+                        newCell = newRow.insertCell();
+                        item = document.createTextNode(i.meeting.name)
+                        newCell.appendChild(item);
+
+                        let cur = formatCurrency(i.transaction.amount)
+                        newCell = newRow.insertCell();
+                        item = document.createTextNode(cur);
+                        newCell.appendChild(item);
+
+                        newCell = newRow.insertCell()
+                        if (i.status_id !== 1) {
+                            newCell.innerHTML = `<span class="badge bg-danger">Refunded</span>`
+                        } else {
+                            newCell.innerHTML = `<span class="badge bg-success">Charged</span>`
+                        }
+                    })
+                    paginator(data.last_page, data.current_page)
+
+                })
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            updateTable(pageSize, currentPage);
+        })
+       
+        function formatCurrency(amount) {
+            let c = parseFloat(amount/100);
+            return c.toLocaleString("en-us", {
+                style: "currency",
+                currency: "USD",
+            });
+        }
+
+    </script>
 {{end}}

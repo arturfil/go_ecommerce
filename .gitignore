@@ -1,3 +1,4 @@
 .env
 
 .air.toml
+.DS_Store
